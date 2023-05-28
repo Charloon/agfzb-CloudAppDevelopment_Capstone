@@ -3,7 +3,9 @@ import json
 # import related models here
 from .models import CarDealer, DealerReview
 from requests.auth import HTTPBasicAuth
-
+from ibm_watson import NaturalLanguageUnderstandingV1
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+from ibm_watson.natural_language_understanding_v1 import Features, SentimentOptions, EntitiesOptions
 
 # Create a `get_request` to make HTTP GET requests
 # e.g., response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
@@ -13,7 +15,11 @@ def get_request(url, **kwargs):
     print("GET from {} ".format(url))
     try:
         # Call get method of requests library with URL and parameters
-        response = requests.get(url, headers={'Content-Type': 'application/json'},
+        if "api_key" in kwargs.keys():
+            response = requests.get(url, headers={'Content-Type': 'application/json'},
+                                    params=kwargs, auth=HTTPBasicAuth('apikey', kwargs["api_key"]))
+        else:
+            response = requests.get(url, headers={'Content-Type': 'application/json'},
                                     params=kwargs)
     except:
         # If any error occurs
@@ -53,6 +59,59 @@ def get_dealers_from_cf(url, **kwargs):
             results.append(dealer_obj)
     return results
 
+
+
+
+# Create an `analyze_review_sentiments` method to call Watson NLU and analyze text
+def analyze_review_sentiments(dealerreview):
+    url = "https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/87e97df2-d600-4bdd-8d8e-a73bd6d5bc47"
+    api_key = "z3_e1jk6oqNGuS5ZpHbAVUQjAptFv_y94lYn2osF0ZV2"
+    """params = params = dict()
+    params["text"] = dealerreview
+    params["features"] = {"sentiment": {}}
+    #params["return_analyzed_text"] = kwargs["return_analyzed_text"]
+     # get
+    #response = get_request(url, params=params, api_key=api_key)
+
+    response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
+                                    auth=HTTPBasicAuth('apikey', api_key))
+    print("NLU sentiment:", response)
+
+    # json_result
+    try:
+        sentiment=response.json()['sentiment']['document']['label']
+        return sentiment
+    except:
+        return "neutral"
+    """
+    authenticator = IAMAuthenticator(api_key)
+    natural_language_understanding = NaturalLanguageUnderstandingV1(
+    version="2020-08-01",
+    authenticator=authenticator
+    )
+    try:
+        natural_language_understanding.set_service_url(url)
+        response = natural_language_understanding.analyze(
+            text=dealerreview,
+            features = Features(entities=EntitiesOptions(sentiment=True,limit=1))
+        ).get_result()
+        print()
+        print("review:", dealerreview)
+        print(json.dumps(response))
+        print()
+        sentiment_score = str(response["sentiment"]["document"]["score"])
+        sentiment_label = response["sentiment"]["document"]["label"]
+        #print(sentiment_score)
+        #print(sentiment_label)
+        sentimentresult = sentiment_label
+    except:
+        sentimentresult = "Neutral"
+        pass
+    
+    return sentimentresult
+# - Call get_request() with specified arguments
+# - Get the returned sentiment label such as Positive or Negative
+
 # Create a get_dealer_reviews_from_cf method to get reviews by dealer id from a cloud function
 # def get_dealer_by_id_from_cf(url, dealerId):
 # - Call get_request() with specified arguments
@@ -72,16 +131,8 @@ def get_dealer_reviews_from_cf(url, **kwargs):
                 car_make = review_doc["car_make"],
                 car_model = review_doc["car_model"],
                 car_year = review_doc["car_year"],
-                sentiment = "", #review_doc["sentiment"],
+                sentiment = analyze_review_sentiments(review_doc["review"]), #review_doc["sentiment"],
                 id = review_doc["id"]))
         print(json_result)
     return results
-
-
-# Create an `analyze_review_sentiments` method to call Watson NLU and analyze text
-# def analyze_review_sentiments(text):
-# - Call get_request() with specified arguments
-# - Get the returned sentiment label such as Positive or Negative
-
-
 

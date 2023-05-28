@@ -111,11 +111,13 @@ def get_dealer_details(request, dealer_id):
     url = "https://us-south.functions.cloud.ibm.com/api/v1/namespaces/59133c61-5d7c-493b-a86f-a7fe68b99f3e/actions/review-package/get-review"
     url = "https://us-south.functions.appdomain.cloud/api/v1/web/59133c61-5d7c-493b-a86f-a7fe68b99f3e/review-package/get-review"
     kwargs = {"dealerid": dealer_id}
-    review = get_dealer_reviews_from_cf(url, dealerid=dealer_id)
-    context['reviews'] = review
+    dealer_details = get_dealer_reviews_from_cf(url, dealerid=dealer_id)
+    context['reviews'] = dealer_details
     context['dealer_id'] = dealer_id
+    # concatenate reviews 
+    reviews = ' '.join([f"{review.review} {review.sentiment}" for review in context['reviews']])
     #context['dealer'] = get_dealer_detail_infos(dealer_id)
-    return render(request, 'djangoapp/dealer_details.html', context)
+    return HttpResponse(reviews)
 
 # Create a `add_review` view to submit a review
 # def add_review(request, dealer_id):
