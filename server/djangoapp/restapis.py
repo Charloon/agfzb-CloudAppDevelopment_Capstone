@@ -52,7 +52,6 @@ def get_dealers_from_cf(url, **kwargs):
     results = []
     # Call get_request with a URL parameter
     json_result = get_request(url)
-    print(json_result)
     if json_result:
         # Get the row list in JSON as dealers
         dealers = json_result #["rows"]
@@ -68,6 +67,8 @@ def get_dealers_from_cf(url, **kwargs):
                                    short_name=dealer_doc["short_name"],
                                    st=dealer_doc["st"], zip=dealer_doc["zip"])
             results.append(dealer_obj)
+    print("results:")
+    print(results)
     return results
 
 
