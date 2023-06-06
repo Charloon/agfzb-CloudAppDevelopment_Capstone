@@ -76,6 +76,9 @@ def get_dealers_from_cf(url, **kwargs):
 
 # Create an `analyze_review_sentiments` method to call Watson NLU and analyze text
 def analyze_review_sentiments(dealerreview):
+
+    print("start analyze_review_sentiments ...")
+
     url = "https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/87e97df2-d600-4bdd-8d8e-a73bd6d5bc47"
     api_key = "z3_e1jk6oqNGuS5ZpHbAVUQjAptFv_y94lYn2osF0ZV2"
     """params = params = dict()
@@ -102,11 +105,14 @@ def analyze_review_sentiments(dealerreview):
     authenticator=authenticator
     )
     try:
+        print("stop1")
         natural_language_understanding.set_service_url(url)
+        print("stop2")
         response = natural_language_understanding.analyze(
             text=dealerreview,
             features = Features(sentiment=SentimentOptions())
         ).get_result()
+        print("stop3")
         print()
         print("review:", dealerreview)
         print(json.dumps(response))
@@ -116,9 +122,15 @@ def analyze_review_sentiments(dealerreview):
         #print(sentiment_score)
         #print(sentiment_label)
         sentimentresult = sentiment_label
-    except:
-        sentimentresult = "Neutral"
+        
+    except Exception as error:
+        print("failed")
+        sentimentresult = "neutral"
+        print(error)
+        print()
         pass
+
+    print("sentimentresult", sentimentresult)
     
     return sentimentresult
 # - Call get_request() with specified arguments
@@ -132,8 +144,10 @@ def get_dealer_reviews_from_cf(url, **kwargs):
     results = []
     # Call get_request with a URL parameter
     json_result = get_request(url,  dealerId=kwargs["dealerid"])
-    print(json_result)
+    
     for review_doc in json_result["data"]["docs"]:
+        print(review_doc["review"])
+
         results.append(DealerReview(
                 dealership = review_doc["dealership"],
                 name = review_doc["name"],
@@ -145,6 +159,6 @@ def get_dealer_reviews_from_cf(url, **kwargs):
                 car_year = review_doc["car_year"],
                 sentiment = analyze_review_sentiments(review_doc["review"]), #review_doc["sentiment"],
                 id = review_doc["id"]))
-        print(json_result)
+
     return results
 
