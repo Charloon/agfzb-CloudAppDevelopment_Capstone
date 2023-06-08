@@ -2,12 +2,11 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
-from .models import CarDealer
+from .models import CarDealer, DealerReview, CarModel, CarMake
 from .restapis import get_dealers_from_cf, get_dealer_reviews_from_cf
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from datetime import datetime
-from .models import CarDealer, DealerReview, CarModel
 import logging
 import json
 
@@ -135,10 +134,14 @@ def add_review(request, dealer_id):
         context["cars"] = cars
         context["dealer"] = dealer
         return render(request, 'djangoapp/add_review.html', context)"""
+        dealers = get_dealers_from_cf(url, dealerid=dealer_id)
+        for dealer in dealers:
+            if dealer.id == dealer_id:
+                dealer_name = dealer.full_name
         context = {
             "dealer_id": dealer_id,
-            "dealer_name": get_dealers_from_cf(url, dealerid=dealer_id),
-            #"cars": CarModel.objects.all()
+            "dealer_name": dealer_name,
+            "cars": CarModel.objects.filter(dealer_id=dealer_id)
         }
         #print(context)
         return render(request, 'djangoapp/add_review.html', context)
@@ -150,9 +153,9 @@ def add_review(request, dealer_id):
         else:
             was_purchased = False
         cars = CarModel.objects.filter(dealer_id=dealer_id)
-        for car in cars:
-            if car.id == int(request.POST['car']):
-                review_car = car  
+        for review_car in cars:
+            if review_car.id == int(request.POST['car']):
+                car = review_car  
         review = {}
         review["time"] = datetime.utcnow().isoformat()
         review["name"] = request.POST['name']
@@ -160,9 +163,9 @@ def add_review(request, dealer_id):
         review["review"] = request.POST['content']
         review["purchase"] = was_purchased
         review["purchase_date"] = request.POST['purchasedate']
-        review["car_make"] = review_car.make.name
-        review["car_model"] = review_car.name
-        review["car_year"] = review_car.year.strftime("%Y")
+        review["car_make"] = car.make.name
+        review["car_model"] = car.name
+        review["car_year"] = car.year.strftime("%Y")
         json_payload = {}
         json_payload["review"] = review
         response = post_request(url, json_payload)
